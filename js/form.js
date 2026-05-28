@@ -15,13 +15,14 @@ const fixedData = {
 };
 
 const defaultFormData = {
-  name: "测试姓名",
-  gender: "男",
-  idCard: "430000199901010000",
-  birthDate: "1999-01-01",
-  studentNo: "S20260001",
-  enrollmentDate: "2026-09-01",
-  graduationDate: "2031-06-30",
+  name: "李宁",
+  gender: "女",
+  idCard: "110105200104283420",
+  birthDate: "2001-04-28",
+  className: "动物医学2201班",
+  studentNo: "S20220001",
+  enrollmentDate: "2022-09-01",
+  graduationDate: "2026-06-30",
   admissionPhoto: "files/no-photo.png"
 };
 
