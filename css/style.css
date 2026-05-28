@@ -1,0 +1,146 @@
+.form-page {
+  min-height: 100vh;
+  margin: 0;
+  color: #1f2933;
+  background: #f3f6f8;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.form-shell {
+  width: min(920px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0 48px;
+}
+
+.form-header {
+  margin-bottom: 20px;
+}
+
+.form-header h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.form-header p {
+  margin: 0;
+  color: #607080;
+  font-size: 15px;
+}
+
+.profile-form {
+  display: grid;
+  gap: 18px;
+}
+
+.form-section {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 22px;
+}
+
+.form-section h2 {
+  margin: 0 0 18px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.profile-form label {
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.profile-form input,
+.profile-form select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 11px 12px;
+  color: #111827;
+  background: #fff;
+  font: inherit;
+}
+
+.profile-form input[readonly] {
+  color: #475569;
+  background: #f8fafc;
+}
+
+.photo-upload {
+  display: grid;
+  gap: 12px;
+}
+
+.photo-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #607080;
+  font-size: 13px;
+}
+
+.photo-preview img {
+  width: 72px;
+  height: 96px;
+  border: 1px solid #d8dee6;
+  object-fit: cover;
+  background: #fff;
+}
+
+.help-text {
+  margin: 0;
+  color: #718096;
+  font-size: 13px;
+}
+
+.error {
+  min-height: 22px;
+  margin: 0;
+  color: #c53030;
+  font-size: 14px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.form-actions button {
+  border: 0;
+  border-radius: 6px;
+  padding: 12px 28px;
+  color: #fff;
+  background: #25b887;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.form-actions button:hover {
+  background: #1fa276;
+}
+
+@media (max-width: 720px) {
+  .form-shell {
+    width: calc(100% - 24px);
+    padding-top: 22px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-section {
+    padding: 18px;
+  }
+}
