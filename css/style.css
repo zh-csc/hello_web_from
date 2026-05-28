@@ -149,6 +149,40 @@
   background: #dbe4ec;
 }
 
+.compact-actions {
+  justify-content: flex-start;
+}
+
+.wechat-transfer-panel {
+  display: grid;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 22px;
+}
+
+.wechat-transfer-panel[hidden] {
+  display: none;
+}
+
+.wechat-transfer-panel h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.wechat-transfer-panel textarea {
+  width: 100%;
+  min-height: 220px;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 12px;
+  color: #111827;
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  resize: vertical;
+}
+
 @media (max-width: 720px) {
   .form-shell {
     width: calc(100% - 24px);

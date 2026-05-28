@@ -138,6 +138,16 @@
         <button type="submit" class="primary-button">生成页面</button>
         <input type="file" id="importFile" accept=".txt,text/plain,application/json" hidden>
       </div>
+
+      <section id="wechatTransferPanel" class="wechat-transfer-panel" hidden>
+        <h2>微信导入/导出</h2>
+        <p class="help-text">微信内置浏览器不支持直接下载或选择 TXT 文件，请复制下方内容保存，或粘贴 TXT 内容后导入。</p>
+        <textarea id="transferText" rows="10" placeholder="导出的 TXT 内容会显示在这里，也可以把 TXT 内容粘贴到这里导入。"></textarea>
+        <div class="form-actions compact-actions">
+          <button type="button" id="copyTransferButton" class="secondary-button">复制内容</button>
+          <button type="button" id="pasteImportButton" class="primary-button">导入文本</button>
+        </div>
+      </section>
     </form>
   </main>
 

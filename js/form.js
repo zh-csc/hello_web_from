@@ -36,6 +36,11 @@ const writableFields = ["name", "gender", "idCard", "birthDate", "className", "s
 const requiredFields = ["name", "gender", "idCard", "className", "studentNo", "enrollmentDate", "graduationDate"];
 const exportFileName = "student-profile.txt";
 
+function isMobileWeChat() {
+  const userAgent = navigator.userAgent || "";
+  return /MicroMessenger/i.test(userAgent) && /Android|iPhone|iPad|iPod/i.test(userAgent);
+}
+
 function parseBirth(idCard) {
   if (!/^\d{17}[\dXx]$/.test(idCard)) return "";
 
@@ -285,6 +290,40 @@ function downloadProfile(profile) {
   URL.revokeObjectURL(url);
 }
 
+function serializeProfile(profile) {
+  return JSON.stringify(profile, null, 2);
+}
+
+function importProfileText(text) {
+  return validateProfileData(JSON.parse(text));
+}
+
+async function copyText(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
+}
+
+function focusTransferText(transferText) {
+  try {
+    transferText.focus();
+    transferText.select();
+  } catch (error) {
+    // Some mobile WebViews reject programmatic selection; manual copy still works.
+  }
+}
+
 function showError(errorBox, message) {
   errorBox.classList.remove("success");
   errorBox.textContent = message;
@@ -308,13 +347,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const importInput = document.querySelector("#importFile");
   const importButton = document.querySelector("#importButton");
   const exportButton = document.querySelector("#exportButton");
+  const wechatTransferPanel = document.querySelector("#wechatTransferPanel");
+  const transferText = document.querySelector("#transferText");
+  const copyTransferButton = document.querySelector("#copyTransferButton");
+  const pasteImportButton = document.querySelector("#pasteImportButton");
   const errorBox = document.querySelector("#formError");
   const previewBox = document.querySelector("#admissionPhotoPreview");
   let restoredProfile = null;
+  const useWechatFallback = isMobileWeChat();
 
   fillFixedFields(form);
   fillDefaultFields(form);
   restoredProfile = restoreForm(form, previewBox);
+
+  if (useWechatFallback) {
+    importInput.hidden = true;
+    wechatTransferPanel.hidden = false;
+  }
 
   idCardInput.addEventListener("input", () => {
     birthDateInput.value = parseBirth(idCardInput.value.trim());
@@ -336,6 +385,13 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   importButton.addEventListener("click", () => {
+    if (useWechatFallback) {
+      wechatTransferPanel.hidden = false;
+      focusTransferText(transferText);
+      showError(errorBox, "微信内置浏览器请将 TXT 内容粘贴到下方文本框后导入");
+      return;
+    }
+
     importInput.click();
   });
 
@@ -347,7 +403,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const content = await readTextFile(file);
-      const profile = validateProfileData(JSON.parse(content));
+      const profile = importProfileText(content);
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
       restoredProfile = profile;
@@ -363,6 +419,40 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  pasteImportButton.addEventListener("click", () => {
+    clearMessage(errorBox);
+
+    try {
+      const profile = importProfileText(transferText.value.trim());
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+      restoredProfile = profile;
+      photoInput.value = "";
+      applyProfileToForm(form, previewBox, profile);
+      showSuccess(errorBox, "导入成功");
+    } catch (error) {
+      showError(errorBox, error instanceof SyntaxError
+        ? "导入文件格式错误：请粘贴有效的 TXT 数据内容"
+        : String(error.message || error));
+    }
+  });
+
+  copyTransferButton.addEventListener("click", async () => {
+    clearMessage(errorBox);
+
+    try {
+      if (!transferText.value.trim()) {
+        const profile = await buildProfileFromForm(form, photoInput, restoredProfile);
+        transferText.value = serializeProfile(profile);
+      }
+
+      await copyText(transferText.value);
+      showSuccess(errorBox, "已复制导出内容");
+    } catch (error) {
+      showError(errorBox, "复制失败，请长按文本框手动复制");
+    }
+  });
+
   exportButton.addEventListener("click", async () => {
     clearMessage(errorBox);
 
@@ -371,6 +461,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
       restoredProfile = profile;
+
+      if (useWechatFallback) {
+        wechatTransferPanel.hidden = false;
+        transferText.value = serializeProfile(profile);
+        focusTransferText(transferText);
+        showSuccess(errorBox, "已生成导出内容，请复制保存为 TXT");
+        return;
+      }
+
       downloadProfile(profile);
     } catch (error) {
       showError(errorBox, String(error.message || error));
