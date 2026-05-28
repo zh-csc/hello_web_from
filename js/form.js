@@ -32,6 +32,10 @@ const PHOTO_RULES = {
   ratio: 3 / 4
 };
 
+const writableFields = ["name", "gender", "idCard", "birthDate", "className", "studentNo", "enrollmentDate", "graduationDate"];
+const requiredFields = ["name", "gender", "idCard", "className", "studentNo", "enrollmentDate", "graduationDate"];
+const exportFileName = "student-profile.txt";
+
 function parseBirth(idCard) {
   if (!/^\d{17}[\dXx]$/.test(idCard)) return "";
 
@@ -113,11 +117,33 @@ function fileToBase64(file) {
   });
 }
 
+function readTextFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject("文件读取失败，请重新选择");
+
+    reader.readAsText(file, "UTF-8");
+  });
+}
+
 function formatStoredDate(value) {
   if (!value) return "";
   return value.includes("年")
     ? value.replace("年", "-").replace("月", "-").replace("日", "")
     : value;
+}
+
+function updatePhotoPreview(previewBox, src) {
+  if (!src) {
+    previewBox.hidden = true;
+    previewBox.querySelector("img").removeAttribute("src");
+    return;
+  }
+
+  previewBox.querySelector("img").src = src;
+  previewBox.hidden = false;
 }
 
 function fillFixedFields(form) {
@@ -142,19 +168,7 @@ function restoreForm(form, previewBox) {
 
   try {
     const profile = JSON.parse(raw);
-    const fields = ["name", "gender", "idCard", "birthDate", "studentNo", "enrollmentDate", "graduationDate"];
-
-    fields.forEach((field) => {
-      if (form.elements[field] && profile[field]) {
-        form.elements[field].value = formatStoredDate(profile[field]);
-      }
-    });
-
-    if (profile.admissionPhoto) {
-      const img = previewBox.querySelector("img");
-      img.src = profile.admissionPhoto;
-      previewBox.hidden = false;
-    }
+    applyProfileToForm(form, previewBox, profile);
 
     return profile;
   } catch (error) {
@@ -163,11 +177,137 @@ function restoreForm(form, previewBox) {
   }
 }
 
+function applyProfileToForm(form, previewBox, profile) {
+  writableFields.forEach((field) => {
+    if (form.elements[field] && profile[field]) {
+      form.elements[field].value = formatStoredDate(profile[field]);
+    }
+  });
+
+  if (form.elements.idCard) {
+    form.elements.birthDate.value = parseBirth(form.elements.idCard.value.trim()) || form.elements.birthDate.value;
+  }
+
+  updatePhotoPreview(previewBox, profile.admissionPhoto);
+}
+
+function validateProfileData(profile) {
+  if (!profile || typeof profile !== "object" || Array.isArray(profile)) {
+    throw new Error("导入文件格式错误：未找到有效表单数据");
+  }
+
+  const missingField = requiredFields.find((field) => !String(profile[field] || "").trim());
+
+  if (missingField) {
+    throw new Error("导入文件格式错误：缺少必要字段");
+  }
+
+  if (!["男", "女"].includes(profile.gender)) {
+    throw new Error("导入文件格式错误：性别只能为男或女");
+  }
+
+  if (!/^\d{17}[\dXx]$/.test(profile.idCard)) {
+    throw new Error("导入文件格式错误：证件号码格式不正确");
+  }
+
+  const birthDate = parseBirth(profile.idCard);
+
+  if (!birthDate) {
+    throw new Error("导入文件格式错误：无法从证件号码解析出生日期");
+  }
+
+  return {
+    ...fixedData,
+    name: String(profile.name).trim(),
+    gender: profile.gender,
+    idCard: String(profile.idCard).trim(),
+    birthDate,
+    className: String(profile.className || fixedData.className).trim(),
+    studentNo: String(profile.studentNo).trim(),
+    enrollmentDate: formatStoredDate(profile.enrollmentDate),
+    graduationDate: formatStoredDate(profile.graduationDate),
+    admissionPhoto: profile.admissionPhoto || defaultFormData.admissionPhoto
+  };
+}
+
+async function buildProfileFromForm(form, photoInput, restoredProfile) {
+  const missingField = requiredFields.find((field) => !form.elements[field].value.trim());
+
+  if (missingField) {
+    form.elements[missingField].focus();
+    throw new Error("请完整填写必填信息");
+  }
+
+  const idCard = form.elements.idCard.value.trim();
+
+  if (!/^\d{17}[\dXx]$/.test(idCard)) {
+    throw new Error("证件号码格式不正确，请输入 18 位身份证号码");
+  }
+
+  const birthDate = parseBirth(idCard);
+
+  if (!birthDate) {
+    throw new Error("无法从证件号码解析出生日期");
+  }
+
+  const photoFile = photoInput.files[0];
+  let admissionPhoto = restoredProfile?.admissionPhoto || defaultFormData.admissionPhoto;
+
+  if (photoFile) {
+    await validateAdmissionPhoto(photoFile);
+    admissionPhoto = await fileToBase64(photoFile);
+  }
+
+  return {
+    ...fixedData,
+    name: form.elements.name.value.trim(),
+    gender: form.elements.gender.value,
+    idCard,
+    birthDate,
+    className: form.elements.className.value.trim(),
+    studentNo: form.elements.studentNo.value.trim(),
+    enrollmentDate: form.elements.enrollmentDate.value,
+    graduationDate: form.elements.graduationDate.value,
+    admissionPhoto
+  };
+}
+
+function downloadProfile(profile) {
+  const blob = new Blob([JSON.stringify(profile, null, 2)], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = exportFileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function showError(errorBox, message) {
+  errorBox.classList.remove("success");
+  errorBox.textContent = message;
+}
+
+function showSuccess(errorBox, message) {
+  errorBox.classList.add("success");
+  errorBox.textContent = message;
+}
+
+function clearMessage(errorBox) {
+  errorBox.classList.remove("success");
+  errorBox.textContent = "";
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.querySelector("#profileForm");
   const idCardInput = form.elements.idCard;
   const birthDateInput = form.elements.birthDate;
   const photoInput = form.elements.admissionPhoto;
+  const importInput = document.querySelector("#importFile");
+  const importButton = document.querySelector("#importButton");
+  const exportButton = document.querySelector("#exportButton");
   const errorBox = document.querySelector("#formError");
   const previewBox = document.querySelector("#admissionPhotoPreview");
   let restoredProfile = null;
@@ -181,73 +321,73 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   photoInput.addEventListener("change", async () => {
-    errorBox.textContent = "";
+    clearMessage(errorBox);
     const file = photoInput.files[0];
     if (!file) return;
 
     try {
       await validateAdmissionPhoto(file);
       const preview = await fileToBase64(file);
-      previewBox.querySelector("img").src = preview;
-      previewBox.hidden = false;
+      updatePhotoPreview(previewBox, preview);
     } catch (error) {
-      previewBox.hidden = true;
-      errorBox.textContent = String(error);
+      updatePhotoPreview(previewBox, "");
+      showError(errorBox, String(error));
+    }
+  });
+
+  importButton.addEventListener("click", () => {
+    importInput.click();
+  });
+
+  importInput.addEventListener("change", async () => {
+    clearMessage(errorBox);
+    const file = importInput.files[0];
+
+    if (!file) return;
+
+    try {
+      const content = await readTextFile(file);
+      const profile = validateProfileData(JSON.parse(content));
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+      restoredProfile = profile;
+      photoInput.value = "";
+      applyProfileToForm(form, previewBox, profile);
+      showSuccess(errorBox, "导入成功");
+    } catch (error) {
+      showError(errorBox, error instanceof SyntaxError
+        ? "导入文件格式错误：请导入有效的 TXT 数据文件"
+        : String(error.message || error));
+    } finally {
+      importInput.value = "";
+    }
+  });
+
+  exportButton.addEventListener("click", async () => {
+    clearMessage(errorBox);
+
+    try {
+      const profile = await buildProfileFromForm(form, photoInput, restoredProfile);
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+      restoredProfile = profile;
+      downloadProfile(profile);
+    } catch (error) {
+      showError(errorBox, String(error.message || error));
     }
   });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    errorBox.textContent = "";
-
-    const requiredFields = ["name", "gender", "idCard", "studentNo", "enrollmentDate", "graduationDate"];
-    const missingField = requiredFields.find((field) => !form.elements[field].value.trim());
-
-    if (missingField) {
-      errorBox.textContent = "请完整填写必填信息";
-      form.elements[missingField].focus();
-      return;
-    }
-
-    const idCard = form.elements.idCard.value.trim();
-
-    if (!/^\d{17}[\dXx]$/.test(idCard)) {
-      errorBox.textContent = "证件号码格式不正确，请输入 18 位身份证号码";
-      return;
-    }
-
-    const birthDate = parseBirth(idCard);
-
-    if (!birthDate) {
-      errorBox.textContent = "无法从证件号码解析出生日期";
-      return;
-    }
+    clearMessage(errorBox);
 
     try {
-      const photoFile = photoInput.files[0];
-      let admissionPhoto = restoredProfile?.admissionPhoto || defaultFormData.admissionPhoto;
-
-      if (photoFile) {
-        await validateAdmissionPhoto(photoFile);
-        admissionPhoto = await fileToBase64(photoFile);
-      }
-
-      const profile = {
-        ...fixedData,
-        name: form.elements.name.value.trim(),
-        gender: form.elements.gender.value,
-        idCard,
-        birthDate,
-        studentNo: form.elements.studentNo.value.trim(),
-        enrollmentDate: form.elements.enrollmentDate.value,
-        graduationDate: form.elements.graduationDate.value,
-        admissionPhoto
-      };
+      const profile = await buildProfileFromForm(form, photoInput, restoredProfile);
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
       window.location.href = "preview.html";
     } catch (error) {
-      errorBox.textContent = String(error);
+      showError(errorBox, String(error.message || error));
     }
   });
 });

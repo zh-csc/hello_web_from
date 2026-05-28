@@ -106,12 +106,18 @@
 .error {
   min-height: 22px;
   margin: 0;
-  color: #c53030;
   font-size: 14px;
+  color: #c53030;
+}
+
+.error.success {
+  color: #1f8a5b;
 }
 
 .form-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   justify-content: center;
 }
 
@@ -126,8 +132,21 @@
   cursor: pointer;
 }
 
-.form-actions button:hover {
+.form-actions .primary-button {
+  background: #25b887;
+}
+
+.form-actions .primary-button:hover {
   background: #1fa276;
+}
+
+.form-actions .secondary-button {
+  color: #1f2933;
+  background: #e8eef3;
+}
+
+.form-actions .secondary-button:hover {
+  background: #dbe4ec;
 }
 
 @media (max-width: 720px) {
@@ -142,5 +161,9 @@
 
   .form-section {
     padding: 18px;
+  }
+
+  .form-actions button {
+    flex: 1 1 100%;
   }
 }

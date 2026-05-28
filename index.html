@@ -90,7 +90,7 @@
 
           <label>
             <span>班级</span>
-            <input type="text" name="className" readonly>
+            <input type="text" name="className" required>
           </label>
 
           <label>
@@ -133,7 +133,10 @@
       <p id="formError" class="error" role="alert"></p>
 
       <div class="form-actions">
-        <button type="submit">生成页面</button>
+        <button type="button" id="importButton" class="secondary-button">导入 TXT</button>
+        <button type="button" id="exportButton" class="secondary-button">导出 TXT</button>
+        <button type="submit" class="primary-button">生成页面</button>
+        <input type="file" id="importFile" accept=".txt,text/plain,application/json" hidden>
       </div>
     </form>
   </main>
