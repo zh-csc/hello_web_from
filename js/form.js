@@ -23,7 +23,7 @@ const defaultFormData = {
   studentNo: "S20220001",
   enrollmentDate: "2022-09-01",
   graduationDate: "2026-06-30",
-  admissionPhoto: "files/no-photo.png"
+  admissionPhoto: "files/test_480x640.jpg"
 };
 
 const PHOTO_RULES = {
@@ -360,6 +360,10 @@ document.addEventListener("DOMContentLoaded", () => {
   fillFixedFields(form);
   fillDefaultFields(form);
   restoredProfile = restoreForm(form, previewBox);
+
+  if (!restoredProfile) {
+    updatePhotoPreview(previewBox, defaultFormData.admissionPhoto);
+  }
 
   if (useWechatFallback) {
     importInput.hidden = true;
